@@ -1754,7 +1754,6 @@ class BundleCLI(object):
                 'bundles',
                 params={
                     'specs': bundle_name,
-                    'worksheet': worksheet_uuid,
                 },
             )
 
@@ -1771,22 +1770,18 @@ class BundleCLI(object):
                 if info['dependencies']:
                     deps = info['dependencies']
 
-                    def print_ancestries(deps, ancestry_level):
-                        new_level = ancestry_level + 2
-                        # print ancestors
-                        for dep in deps:
-                            ancestor_list = []
-                            parent = " ".join(
-                                [new_level*" " + "-",
-                                contents_str(dep['parent_name'])
-                                + '(' + dep['parent_uuid'][0:8] + ')']
-                            )
-                            ancestor_list.append(parent)
-                            # while dep['parent_uuid'] != "":
-                            #     print>>self.stdout, '\n' + dep['parent_uuid']
-                            print >>self.stdout, '\n'.join(ancestor_list)
-                            recur(dep['parent_uuid'], new_level)
-                    print_ancestries(deps, ancestry_level)
+                    new_level = ancestry_level + 2
+                    # print ancestors
+                    for dep in deps:
+                        ancestor_list = []
+                        parent = " ".join(
+                            [new_level*" " + "-",
+                            contents_str(dep['parent_name'])
+                            + '(' + dep['parent_uuid'][0:8] + ')']
+                        )
+                        ancestor_list.append(parent)
+                        print >>self.stdout, '\n'.join(ancestor_list)
+                        recur(dep['parent_uuid'], new_level)
 
         recur(args.bundle_spec, 0)
 
