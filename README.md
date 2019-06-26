@@ -1,3 +1,25 @@
+# Coding Challenge
+Use the following commands as test scripts
+
+# no dependencies
+`cd test`
+`cl upload data`
+`cl ancestors data`
+
+# one level of ancestry
+`cd test`
+`cl upload data`
+`cl upload code`
+`cl run :data :code 'python code/sort.py < data/lines.txt'`
+`cl ancestors run-python`
+
+# nested ancestry
+`cl ancestors 0xdbb9daec17bb4964bc86a559c0927464`
+
+# error message
+`cl ancestors run_python`
+
+
 # CodaLab Worksheets
 [![Build Status](https://travis-ci.org/codalab/codalab-worksheets.svg?branch=master)](https://travis-ci.org/codalab/codalab-worksheets.svg?branch=master)
 [![Downloads](https://pepy.tech/badge/codalab)](https://pepy.tech/project/codalab)
