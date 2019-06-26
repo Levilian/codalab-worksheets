@@ -1729,6 +1729,68 @@ class BundleCLI(object):
         client.create('worksheet-items', data=new_items, params={'replace': True})
 
     @Commands.command(
+        'ancestors',
+        help='Print out the ancestors of the bunble to stdout.',
+        arguments=(
+            Commands.Argument(
+                'bundle_spec', help=BUNDLE_SPEC_FORMAT, nargs='+', completer=BundlesCompleter
+            ),
+            Commands.Argument(
+                '-w',
+                '--worksheet-spec',
+                help='Operate on this worksheet (%s).' % WORKSHEET_SPEC_FORMAT,
+                completer=WorksheetsCompleter,
+            ),
+        ),
+    )
+
+    def do_ancestors_command(self, args):
+        args.bundle_spec = spec_util.expand_specs(args.bundle_spec)
+        client, worksheet_uuid = self.parse_client_worksheet_uuid(args.worksheet_spec)
+
+        def recur(bundle_name, ancestry_level):
+            # fetch bundle
+            bundles = client.fetch(
+                'bundles',
+                params={
+                    'specs': bundle_name,
+                    'worksheet': worksheet_uuid,
+                },
+            )
+
+            # loop through bundles and print out ancestors on each level
+            for info in bundles:
+                
+                # prints bundle itself
+                if ancestry_level == 0:
+                    itself = " ".join([ancestry_level*" " + "-",
+                        contents_str(info['metadata']['name'])
+                            + '(' + info['uuid'][0:8] + ')'])
+                    print >>self.stdout, itself
+
+                if info['dependencies']:
+                    deps = info['dependencies']
+
+                    def print_ancestries(deps, ancestry_level):
+                        new_level = ancestry_level + 2
+                        # print ancestors
+                        for dep in deps:
+                            ancestor_list = []
+                            parent = " ".join(
+                                [new_level*" " + "-",
+                                contents_str(dep['parent_name'])
+                                + '(' + dep['parent_uuid'][0:8] + ')']
+                            )
+                            ancestor_list.append(parent)
+                            # while dep['parent_uuid'] != "":
+                            #     print>>self.stdout, '\n' + dep['parent_uuid']
+                            print >>self.stdout, '\n'.join(ancestor_list)
+                            recur(dep['parent_uuid'], new_level)
+                    print_ancestries(deps, ancestry_level)
+
+        recur(args.bundle_spec, 0)
+
+    @Commands.command(
         'rm',
         help='Remove a bundle (permanent!).',
         arguments=(
@@ -1766,6 +1828,7 @@ class BundleCLI(object):
             ),
         ),
     )
+
     def do_rm_command(self, args):
         args.bundle_spec = spec_util.expand_specs(args.bundle_spec)
         client, worksheet_uuid = self.parse_client_worksheet_uuid(args.worksheet_spec)
@@ -2010,34 +2073,36 @@ class BundleCLI(object):
                 + (['children', 'group_permissions', 'host_worksheets'] if args.verbose else []),
             },
         )
+        import json
+        print json.dumps(bundles, indent=4)
 
-        for i, info in enumerate(bundles):
-            if args.field:
-                # Display individual fields (arbitrary genpath)
-                values = []
-                for genpath in args.field.split(','):
-                    if worksheet_util.is_file_genpath(genpath):
-                        value = contents_str(
-                            client.interpret_file_genpaths([(info['id'], genpath, None)])[0]
-                        )
-                    else:
-                        value = worksheet_util.interpret_genpath(info, genpath)
-                    values.append(value)
-                print >>self.stdout, '\t'.join(map(str, values))
-            else:
-                # Display all the fields
-                if i > 0:
-                    print
-                self.print_basic_info(client, info, args.raw)
-                if args.verbose:
-                    self.print_children(info)
-                    self.print_host_worksheets(info)
-                    self.print_permissions(info)
-                    self.print_contents(client, info)
+        # for i, info in enumerate(bundles):
+        #     if args.field:
+        #         # Display individual fields (arbitrary genpath)
+        #         values = []
+        #         for genpath in args.field.split(','):
+        #             if worksheet_util.is_file_genpath(genpath):
+        #                 value = contents_str(
+        #                     client.interpret_file_genpaths([(info['id'], genpath, None)])[0]
+        #                 )
+        #             else:
+        #                 value = worksheet_util.interpret_genpath(info, genpath)
+        #             values.append(value)
+        #         print >>self.stdout, '\t'.join(map(str, values))
+        #     else:
+        #         # Display all the fields
+        #         if i > 0:
+        #             print
+        #         self.print_basic_info(client, info, args.raw)
+        #         if args.verbose:
+        #             self.print_children(info)
+        #             self.print_host_worksheets(info)
+        #             self.print_permissions(info)
+        #             self.print_contents(client, info)
 
-        # Headless client should fire OpenBundle UI action if no special flags used
-        if self.headless and not (args.field or args.raw or args.verbose):
-            return ui_actions.serialize([ui_actions.OpenBundle(bundle['id']) for bundle in bundles])
+        # # Headless client should fire OpenBundle UI action if no special flags used
+        # if self.headless and not (args.field or args.raw or args.verbose):
+        #     return ui_actions.serialize([ui_actions.OpenBundle(bundle['id']) for bundle in bundles])
 
     @staticmethod
     def key_value_str(key, value):
