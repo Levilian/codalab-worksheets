@@ -112,6 +112,7 @@ BUNDLE_COMMANDS = (
     'make',
     'run',
     'docker',
+    'ancestors',
     'edit',
     'detach',
     'rm',
@@ -1768,11 +1769,10 @@ class BundleCLI(object):
                     print >>self.stdout, itself
 
                 if info['dependencies']:
-                    deps = info['dependencies']
 
                     new_level = ancestry_level + 2
                     # print ancestors
-                    for dep in deps:
+                    for dep in info['dependencies']:
                         ancestor_list = []
                         parent = " ".join(
                             [new_level*" " + "-",
@@ -2068,36 +2068,36 @@ class BundleCLI(object):
                 + (['children', 'group_permissions', 'host_worksheets'] if args.verbose else []),
             },
         )
-        import json
-        print json.dumps(bundles, indent=4)
+        # import json
+        # print json.dumps(bundles, indent=4)
 
-        # for i, info in enumerate(bundles):
-        #     if args.field:
-        #         # Display individual fields (arbitrary genpath)
-        #         values = []
-        #         for genpath in args.field.split(','):
-        #             if worksheet_util.is_file_genpath(genpath):
-        #                 value = contents_str(
-        #                     client.interpret_file_genpaths([(info['id'], genpath, None)])[0]
-        #                 )
-        #             else:
-        #                 value = worksheet_util.interpret_genpath(info, genpath)
-        #             values.append(value)
-        #         print >>self.stdout, '\t'.join(map(str, values))
-        #     else:
-        #         # Display all the fields
-        #         if i > 0:
-        #             print
-        #         self.print_basic_info(client, info, args.raw)
-        #         if args.verbose:
-        #             self.print_children(info)
-        #             self.print_host_worksheets(info)
-        #             self.print_permissions(info)
-        #             self.print_contents(client, info)
+        for i, info in enumerate(bundles):
+            if args.field:
+                # Display individual fields (arbitrary genpath)
+                values = []
+                for genpath in args.field.split(','):
+                    if worksheet_util.is_file_genpath(genpath):
+                        value = contents_str(
+                            client.interpret_file_genpaths([(info['id'], genpath, None)])[0]
+                        )
+                    else:
+                        value = worksheet_util.interpret_genpath(info, genpath)
+                    values.append(value)
+                print >>self.stdout, '\t'.join(map(str, values))
+            else:
+                # Display all the fields
+                if i > 0:
+                    print
+                self.print_basic_info(client, info, args.raw)
+                if args.verbose:
+                    self.print_children(info)
+                    self.print_host_worksheets(info)
+                    self.print_permissions(info)
+                    self.print_contents(client, info)
 
-        # # Headless client should fire OpenBundle UI action if no special flags used
-        # if self.headless and not (args.field or args.raw or args.verbose):
-        #     return ui_actions.serialize([ui_actions.OpenBundle(bundle['id']) for bundle in bundles])
+        # Headless client should fire OpenBundle UI action if no special flags used
+        if self.headless and not (args.field or args.raw or args.verbose):
+            return ui_actions.serialize([ui_actions.OpenBundle(bundle['id']) for bundle in bundles])
 
     @staticmethod
     def key_value_str(key, value):
